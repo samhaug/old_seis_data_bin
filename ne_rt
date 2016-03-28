@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+import obspy
+import glob
+import numpy as np
+
+stn = obspy.read('*BHN*filtered')
+ste = obspy.read('*BHE*filtered')
+stn.interpolate(sampling_rate=40.0)
+ste.interpolate(sampling_rate=40.0)
+
+nshape = []
+for tr in stn:
+    nshape.append(tr.data.shape[0])
+
+data_len = min(nshape)
+for tr in stn:
+    tr.data = tr.data[0:data_len]
+
+eshape = []
+for tr in ste:
+    eshape.append(tr.data.shape[0])
+
+data_len = min(eshape)
+for tr in ste:
+    tr.data = tr.data[0:data_len]
+
+st_r = stn.copy()
+st_t = stn.copy()
+
+for ii in range(0,len(stn)):
+    r,t = obspy.signal.rotate_NE_RT(stn[ii],ste[ii],stn[ii].stats.sac['gcarc'])
+    st_r.data = r
+    st_t.data = t
+
+st_r.write('radial.sac',format='SAC')
+st_t.write('transverse.sac',format='SAC')

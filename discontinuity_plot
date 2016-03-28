@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+
+import numpy as np
+from matplotlib import pyplot as plt
+import sys
+
+
+def main(bm_file):
+    bm_array = np.loadtxt(bm_file,skiprows=4)
+    fig, ax = plt.subplots(figsize=(8,10))
+
+    ax.set_title('Perturbations to PREM')
+    ax.plot(bm_array[:,1]/1000.,bm_array[:,0]/1000.,label=r'$\rho$',lw=2)
+    ax.plot(bm_array[:,2]/1000.,bm_array[:,0]/1000.,label=r'$V_{s}$',lw=2)
+    ax.plot(bm_array[:,3]/1000.,bm_array[:,0]/1000.,label=r'$V_{p}$',lw=2)
+    ax.set_xlabel(r'Density $\left(\frac{kg}{m^3}\right)$, '+
+                  r'Velocity $\left(\frac{km}{s}\right)$')
+    ax.set_ylabel(r'Radius (km)')
+    ax.legend()
+    ax.grid()
+    ax.set_ylim((3580,6371))
+    plt.show()
+
+bm_file = sys.argv[1]
+main(bm_file)

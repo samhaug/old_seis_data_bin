@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+
+import os
+import glob
+
+'''
+After running seispy.plot.section with picker=True a list of selected station
+names will be made in the CWD. This executable will add the string '_DIRTY' to
+the .SAC files in this list. You can import all non dirty files into a stream
+object by the command:
+
+st = obspy.read("*BH?*filtered")
+
+where ? is Z,N,E, or a wildcard
+'''
+
+try:
+    f = open('REMOVE_LIST')
+except IOError:
+    print('You must run seispy.plot.section with picker=True \
+           in order to generate REMOVE_LIST.')
+
+stations = f.read().strip().split('\n')
+dirlist = glob.glob('*')
+
+def statfromfile(name):
+    return name.split('.')[0]+'.'+name.split('.')[1]
+
+for file in dirlist:
+    if file.endswith('filtered') and statfromfile(file) in stations:
+        os.rename(file,file+'_DIRTY')
+

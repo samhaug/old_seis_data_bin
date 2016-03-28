@@ -1,0 +1,68 @@
+#!/usr/bin/env python
+
+import numpy as np
+import glob
+import sys
+import os
+import subprocess
+import shutil
+
+
+def main():
+    event_list = glob.glob('./seismograms/*')
+    pz_list = glob.glob('./polezero/*/*')
+
+    os.mkdir('./Processed')
+
+    for ev_dir in event_list:
+        d = ev_dir.split('/')[2]
+        os.mkdir('./Processed/'+d)
+        #a = os.listdir('./seismograms/'+d+'/*/*')
+        sac_files = glob.glob('./seismograms/'+d+'/*/*')
+        print len(sac_files)
+        for sac in sac_files:
+            out_file = './Processed/'+d+'/'+sac.split('/')[-1]
+            sac_key = sac.split('/')[-1][0:-4]
+            for pz in pz_list:
+                if sac_key in pz:
+                    print sac
+                    print pz
+                    print out_file
+                    sac_rr(sac,pz,out_file)
+    #for sac in sac_files:
+    #    k
+    #net_list = glob.glob(ev_dir+'/*')
+    #for net in net_list:
+    #    net_name = net.split('/')[-1]
+    #    print net
+    #for pz_dir in pz_list:
+    #    if network in pz_dir:
+
+
+def sac_rr(sac_file,pz_file,out_sac):
+
+    p = subprocess.Popen(['sac'],
+                     stdout = subprocess.PIPE,
+                     stdin  = subprocess.PIPE,
+                     stderr = subprocess.STDOUT)
+    s = "echo on\n"
+
+    s += '''
+         setbb pzfile {}
+         read {}
+         rtr
+         taper
+         trans from polezero S %pzfile to none freq 0.020 0.045 20 40
+         mul 1.0e9
+         write {}.filtered
+         '''.format(pz_file,sac_file,out_sac)
+    s += "quit\n"
+
+    out = p.communicate(s)
+    print out[0]
+
+shutil.rmtree('./Processed/')
+main()
+
+
+

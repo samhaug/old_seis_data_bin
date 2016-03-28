@@ -1,0 +1,31 @@
+#!/usr/bin/env python
+
+import glob
+import subprocess
+
+#Execute within directory containing SAC files and associated RESP files.
+#This removes the instrument response from the seismograms and outputs
+#SAC files with a .filtered extension.
+#Samuel Haugland 1/11/16
+
+resp_list = []
+
+files = glob.glob('*.sac')
+
+p = subprocess.Popen(['sac'],
+                     stdout = subprocess.PIPE,
+                     stdin  = subprocess.PIPE,
+                     stderr = subprocess.STDOUT)
+s = "echo on\n"
+
+for ii in files:
+    s += '''
+         r {}
+         rmean
+         rtr
+         trans from evalresp to none freq 0.004 0.005 2 3
+         w over
+         '''.format(ii)
+s += "quit\n"
+out = p.communicate(s)
+print out[0]
