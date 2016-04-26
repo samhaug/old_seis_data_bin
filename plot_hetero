@@ -1,0 +1,96 @@
+#!/usr/bin/env python
+from matplotlib.transforms import Affine2D
+import mpl_toolkits.axisartist.floating_axes as floating_axes
+import numpy as np
+import mpl_toolkits.axisartist.angle_helper as angle_helper
+from matplotlib.projections import PolarAxes
+from mpl_toolkits.axisartist.grid_finder import (FixedLocator, MaxNLocator,
+                                                 DictFormatter)
+import matplotlib.pyplot as plt
+import sys
+import h5py
+import seispy
+import obspy
+
+
+def setup_axes2(fig, rect):
+    """
+    With custom locator and formatter.
+    Note that the extreme values are swapped.
+    """
+    tr = PolarAxes.PolarTransform()
+
+    pi = np.pi
+    angle_ticks = [(0,'180' ),
+                   (.25*pi,'135' ),
+                   (.5*pi, '90'),
+                   (.75*pi,'45' ),
+                   (pi,'0')]
+    grid_locator1 = FixedLocator([v for v, s in angle_ticks])
+    tick_formatter1 = DictFormatter(dict(angle_ticks))
+
+    grid_locator2 = MaxNLocator(nbins=6)
+
+    grid_helper = floating_axes.GridHelperCurveLinear(
+        tr, extremes=(pi,0, 6371,3481),
+        grid_locator1=grid_locator1,
+        grid_locator2=grid_locator2,
+        tick_formatter1=tick_formatter1,
+        tick_formatter2=None)
+
+    ax1 = floating_axes.FloatingSubplot(fig, rect, grid_helper=grid_helper)
+    fig.add_subplot(ax1)
+    aux_ax = ax1.get_aux_axes(tr)
+
+    aux_ax.patch = ax1.patch  # for aux_ax to have a clip path as in ax
+    ax1.patch.zorder = 0.9  # but this has a side effect that the patch is
+    # drawn twice, and possibly over some other
+    # artists. So, we decrease the zorder a bit to
+    # prevent this.
+
+    return ax1, aux_ax
+
+##########################################################
+fig = plt.figure(2, figsize=(25, 8))
+
+scatter_file = sys.argv[1]
+rotate = sys.argv[2]
+stream_pickle = sys.argv[3]
+
+if '.dat' in scatter_file:
+    xy_array = np.genfromtxt(scatter_file)
+    theta = np.radians(float(rotate)) + (np.arctan2(xy_array[:,0],xy_array[:,1]))
+    radius = np.sqrt(xy_array[:,0]**2+xy_array[:,1]**2)
+    plot_array = []
+
+    for ii in range(0,len(theta)):
+        if theta[ii] > np.pi or theta[ii] < 0:
+            continue
+        else:
+            plot_array.append([radius[ii],theta[ii]])
+
+    plot_array = np.array(plot_array)
+
+    ax2, aux_ax2 = setup_axes2(fig, 122)
+    aux_ax2.scatter(plot_array[:,1],plot_array[:,0],marker='.',color='k',s=2)
+
+if '.h5' in scatter_file:
+    f = h5py.File(scatter_file,'r')
+    plot_array = f['scatter'][...]
+
+    ax2, aux_ax2 = setup_axes2(fig, 122)
+    aux_ax2.scatter(np.pi-np.radians(plot_array[:,1]),plot_array[:,0],marker='.',color='k',s=2.0)
+ 
+ax_env   = plt.subplot2grid((1,2), (0,0), rowspan=2)
+st = obspy.read(stream_pickle)
+st = seispy.convert.set_gcarc(st)
+seispy.plot.new_precursor_PKIKP(st,ax_grab=ax_env,align=False,
+                                filter=(0.5,2.0),time=(-35,10))
+
+plt.show()
+
+
+
+
+
+
