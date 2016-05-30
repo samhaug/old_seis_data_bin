@@ -11,7 +11,7 @@ def main():
     st_e = obspy.core.Stream()
     st_z = obspy.core.Stream()
 
-    info_list, CMT_list, inparam_list, station_list = open_files()
+    info_list, CMT_list, inparam_list, station_list, source_list = open_files()
 
     seis_list = glob.glob('./SEISMOGRAMS/*.dat')
 
@@ -28,14 +28,22 @@ def main():
     evla = CMT_list[0]
     evlo = CMT_list[1]
     evdp = CMT_list[2]
+    evdp = float(info_list[8].strip().split()[0])
+    evla = float(source_list[10][1])
+    evlo = float(source_list[13][1])
 
     for ii in seis_list:
         tr = obspy.core.Trace()
         network = ii.split('/')[-1].split('_')[1]
         station = ii.split('/')[-1].split('_')[0]
         if station == 'STAT' or station == 'STATneg':
-            station = ii.split('/')[-1].split('_')[0]+'_'+\
-                      ii.split('/')[-1].split('_')[1]
+            if len(ii.split('/')[-1].split('_')) == 2:
+                station = ii.split('/')[-1].split('_')[0]+'_'+\
+                          ii.split('/')[-1].split('_')[1]
+            else:
+                station = ii.split('/')[-1].split('_')[0]+'_'+\
+                          ii.split('/')[-1].split('_')[1]+'_'+\
+                          ii.split('/')[-1].split('_')[2]
         channel = ii.split('/')[-1].split('_')[-1][0]
         data = pandas.read_csv(ii,
                         sep=r"\s*",engine='python')
@@ -75,11 +83,15 @@ def main():
             st_n.append(tr)
         if channel == 'Z':
             st_z.append(tr)
+    print('Write N')
     st_n.write('st_N.pk',format='PICKLE')
+    print('Write E')
     st_e.write('st_E.pk',format='PICKLE')
+    print('Write Z')
     st_z.write('st_Z.pk',format='PICKLE')
 
 def open_files():
+    print('Open files')
     info_file = open('./simulation.info')
     info_list = info_file.read().strip().split('\n')
 
@@ -98,6 +110,10 @@ def open_files():
 
     station_file = open('./STATIONS')
     station_list = [line.strip().split() for line in station_file]
-    return info_list, CMT_list, inparam_list, station_list
+
+    source_file = open('./inparam_source')
+    source_list = [line.strip().split() for line in source_file]
+
+    return info_list, CMT_list, inparam_list, station_list, source_list
 
 main()

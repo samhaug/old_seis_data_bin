@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+
+import h5py
+import numpy as np
+import sys
+from matplotlib import pyplot as plt
+import obspy
+import seispy
+
+# Open vespagram h5 file
+#time limit is from -10 to 600
+# 1 second is 50 indices
+# S1800P at a[85,5437]
+# S at a[23,24461]
+'''
+a = h5py.File(sys.argv[1],'r')
+a = a['vesp'][...]
+
+s1800p = a[375,4927:5927]
+s = a[65,23945:24945]
+plt.plot(s)
+plt.plot(s1800p)
+plt.show()
+'''
+
+st = obspy.read(sys.argv[1])
+st = seispy.filter.az_filter(st,(270,330))
+st = seispy.data.normalize_on_phase(st,phase=['S'])
+st = seispy.data.align_on_phase(st)
+
+disp_sp = []
+disp_s = []
+
+for tr in st:
+    disp_sp.append(seispy.data.phase_window(tr,['S1800P'],(-100,100)).data)
+    disp_s.append(seispy.data.phase_window(tr,['S'],(-100,100)).data)
+
+sp_phase = np.sum(np.array(disp_sp),axis=0)/len(disp_sp)
+s_phase = np.sum(np.array(disp_s),axis=0)/len(disp_s)
+
+print np.std(sp_phase[1000:4000])
+print np.std(s_phase[1000:4000])
+st.differentiate()
+st = seispy.data.normalize_on_phase(st,phase=['S'])
+st = seispy.data.align_on_phase(st)
+
+vel_sp = []
+vel_s = []
+
+#for tr in st:
+#    vel_sp.append(seispy.data.phase_window(tr,['S1800P'],(-150,150)).data)
+#    vel_s.append(seispy.data.phase_window(tr,['S'],(-150,150)).data)
+
+#spv_phase = np.sum(np.array(vel_sp),axis=0)/len(vel_sp)
+#sv_phase = np.sum(np.array(vel_s),axis=0)/len(vel_s)
+
+fig1, ax1 = plt.subplots(figsize=(20,20))
+ax1.plot(sp_phase)
+ax1.plot(s_phase)
+ax1.set_title('Displacement')
+ax1.grid()
+
+#fig2, ax2 = plt.subplots(figsize=(20,20))
+#ax2.plot(spv_phase)
+#ax2.plot(sv_phase)
+#ax2.set_title('Velocity')
+#ax2.grid()
+
+plt.show()
